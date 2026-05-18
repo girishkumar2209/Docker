@@ -1,0 +1,42 @@
+---
+- name: Assignment 3.1 Playbook
+  hosts: all
+  become: yes
+  tasks:
+
+    # a) Create supportuser with sudo privileges
+    - name: Create supportuser
+      user:
+        name: supportuser
+        state: present
+        shell: /bin/bash
+
+    - name: Add supportuser to sudoers
+      copy:
+        dest: /etc/sudoers.d/supportuser
+        content: "supportuser ALL=(ALL) NOPASSWD:ALL\n"
+        mode: '0440'
+
+    # b) Run df -h and save output to /tmp/diskreport.txt
+    - name: Save disk usage report
+      command: df -h
+      register: disk_report
+
+    - name: Write disk report to file
+      copy:
+        dest: /tmp/diskreport.txt
+        content: "{{ disk_report.stdout }}"
+
+    # c) Deploy httpd if OS family is RedHat
+    - name: Install httpd on RedHat family
+      yum:
+        name: httpd
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Ensure httpd service is running
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+      when: ansible_os_family == "RedHat"
